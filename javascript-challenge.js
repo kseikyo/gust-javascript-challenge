@@ -33,16 +33,127 @@ var _k = _interopRequireDefault(require("./k"));
 var _drawers = _interopRequireDefault(require("./widgets/drawers"));
 var _extendingForm = _interopRequireDefault(require("./widgets/extending-form"));
 var _tabs = _interopRequireDefault(require("./widgets/tabs"));
+var _checkboxes = _interopRequireDefault(require("./widgets/checkboxes"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 document.addEventListener("DOMContentLoaded", function () {
   (0, _k["default"])({
     drawers: _drawers["default"],
     extendingForm: _extendingForm["default"],
-    tabs: _tabs["default"]
+    tabs: _tabs["default"],
+    checkboxes: _checkboxes["default"]
   }, document);
 });
 
-},{"./k":1,"./widgets/drawers":3,"./widgets/extending-form":4,"./widgets/tabs":5}],3:[function(require,module,exports){
+},{"./k":1,"./widgets/checkboxes":3,"./widgets/drawers":4,"./widgets/extending-form":5,"./widgets/tabs":6}],3:[function(require,module,exports){
+"use strict";
+
+function linkedCheckBox(widget) {
+  var controllingBox = widget.querySelector("[kjs-role=controlling]");
+  var relatedBoxes = widget.querySelectorAll("[kjs-role=related]");
+
+  /**
+   *
+   * @param {*} e
+   * @returns {{ allChecked, someUnchecked, someChecked }}
+   *
+   */
+  function handleRelatedCheck(e) {
+    var someUnchecked = false;
+    var someChecked = false;
+    var allChecked = true;
+    relatedBoxes.forEach(function (related) {
+      if (related.checked == true) {
+        someChecked = true;
+      } else {
+        someUnchecked = true;
+        allChecked = false;
+      }
+    });
+    // if all related boxes are checked, the controlling box should be checked
+    if (allChecked === true) {
+      controllingBox.indeterminate = false;
+      controllingBox.checked = true;
+      return {
+        allChecked: allChecked,
+        someUnchecked: someUnchecked,
+        someChecked: someChecked
+      };
+    }
+    // if someChecked and someUnchecked, the controlling box should be indeterminate
+    // given that not all related boxes are checked
+    if (someChecked === someUnchecked) {
+      controllingBox.indeterminate = true;
+      controllingBox.checked = false;
+      return {
+        allChecked: allChecked,
+        someUnchecked: someUnchecked,
+        someChecked: someChecked
+      };
+    }
+
+    // if no related boxes are checked, the controlling box should be unchecked
+    if (someChecked === false) {
+      controllingBox.indeterminate = false;
+      controllingBox.checked = false;
+      return {
+        allChecked: allChecked,
+        someUnchecked: someUnchecked,
+        someChecked: someChecked
+      };
+    }
+  }
+  function handleControllingCheck(e) {
+    if (controllingBox.checked === true) {
+      // this will be true if the user clicked on the controlling box
+      // we need to validate the state of the related boxes and set the controlling box accordingly
+      var _handleRelatedCheck = handleRelatedCheck(),
+        someChecked = _handleRelatedCheck.someChecked,
+        someUnchecked = _handleRelatedCheck.someUnchecked;
+      if (someChecked === someUnchecked) {
+        controllingBox.indeterminate = false;
+        controllingBox.checked = false;
+        relatedBoxes.forEach(function (related) {
+          related.checked = false;
+        });
+        return;
+      }
+      controllingBox.indeterminate = false;
+      controllingBox.checked = true;
+      relatedBoxes.forEach(function (related) {
+        related.checked = true;
+      });
+      return;
+    }
+    if (controllingBox.checked === false) {
+      relatedBoxes.forEach(function (related) {
+        related.checked = false;
+      });
+      return;
+    }
+  }
+
+  // initialize actions with the controlling box
+  var actions = [{
+    element: controllingBox,
+    event: "change",
+    handler: handleControllingCheck
+  }];
+
+  // add actions for each related box
+  relatedBoxes.forEach(function (related) {
+    actions.push({
+      element: related,
+      event: "change",
+      handler: handleRelatedCheck
+    });
+  });
+  return {
+    actions: actions
+  };
+}
+module.exports = linkedCheckBox;
+
+},{}],4:[function(require,module,exports){
 "use strict";
 
 function accordion(widget) {
@@ -72,7 +183,7 @@ function accordion(widget) {
 }
 module.exports = accordion;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 
 function extendingForm(widget) {
@@ -99,7 +210,7 @@ function extendingForm(widget) {
 }
 module.exports = extendingForm;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 "use strict";
 
 function tabs(widget) {
